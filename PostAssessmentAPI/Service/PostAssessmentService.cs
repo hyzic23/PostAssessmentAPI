@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using PostAssessmentAPI.Enums;
+﻿using Microsoft.Extensions.Options;
+using PostAssessmentAPI.Config;
+using PostAssessmentAPI.Exceptions;
 using PostAssessmentAPI.IService;
 using PostAssessmentAPI.Model;
 
@@ -14,12 +8,18 @@ namespace PostAssessmentAPI.Service
 {
     public class PostAssessmentService : IPostAssessmentService
     {
+        private readonly AppSettings _appSettings;
+        public PostAssessmentService(IOptions<AppSettings> appSettings)
+        {
+            _appSettings = appSettings.Value;
+        }
 
         public async Task<Response> GetPost(PostRequest request)
         {
             List<PostResponse> postResponse = new List<PostResponse>();
             Response response = new Response();
-            string PostUrl = "https://api.assessment.skillset.technology/a74fsg46d/posts";
+            string PostUrl = _appSettings.PostAssessmentUrl;
+
 
             try
             {
@@ -35,14 +35,18 @@ namespace PostAssessmentAPI.Service
 
                     if (!httpResponse.IsSuccessStatusCode)
                     {
-                        throw new Exception($"Failed to retrieve posts. HTTP status code: {httpResponse.StatusCode}");
+                        throw new PostAssessmentException(string.Format($"Failed to retrieve posts. - { httpResponse.StatusCode}"));
                     }
 
                     using (HttpContent content = httpResponse.Content)
                     {
                         string jsonString = await content.ReadAsStringAsync();
-                        response = Newtonsoft.Json.JsonConvert.DeserializeObject<Response>(jsonString);
-                        postResponse.AddRange(response.Posts);
+                        if(string.IsNullOrEmpty(jsonString))
+                        {
+                            return new Response();
+                        }
+                            response = Newtonsoft.Json.JsonConvert.DeserializeObject<Response>(jsonString);
+                            postResponse.AddRange(response.Posts);
                     }
                 }
 
@@ -56,18 +60,17 @@ namespace PostAssessmentAPI.Service
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to retrieve posts. { ex.Message}");
+                throw new PostAssessmentException(string.Format($"Exception is : { ex.Message}"));
             }
             return response;
 
         }
 
 
-        
+        //Method to Sort 
         private static List<PostResponse> SortPost(string sortBy, string direction, IEnumerable<PostResponse> posts)
         {
             var postsResults = posts.AsQueryable();
-            
 
             switch (sortBy.ToLower())
             {

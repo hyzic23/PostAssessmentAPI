@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PostAssessmentAPI.IService;
 using PostAssessmentAPI.Model;
 using PostAssessmentAPI.Utils;
@@ -20,10 +19,10 @@ namespace PostAssessmentAPI.Controllers
         
         [HttpGet]
         [Route("Posts")]
-		public async Task<IActionResult> Posts(string tag, string sortBy = "id", string direction = "asc")
+		public async Task<IActionResult> Posts(string tags, string? sortBy = "id", string? direction = "asc")
 		{
             
-            if (String.IsNullOrEmpty(tag))
+            if (String.IsNullOrEmpty(tags))
             {
                 return BadRequest("tags parameter is required");
             }
@@ -39,9 +38,9 @@ namespace PostAssessmentAPI.Controllers
 
             PostRequest request = new PostRequest()
 			{
-				Tags = tag,
-				SortBy = sortBy,
-				Direction = direction
+				Tags = tags.Trim(),
+				SortBy = sortBy.Trim(),
+				Direction = direction.Trim()
 			};
 
             var response = await _service.GetPost(request);
